@@ -46,34 +46,41 @@ def main():
         print("❌ Missing env vars. Check GitHub Secrets.")
         return
 
-    api_url = f"{BASE}/wp-json/wc/v3/products"
+    # اول wp-json root رو تست می‌کنیم
+    wpjson_root = f"{BASE}/wp-json/"
+    wc_products = f"{BASE}/wp-json/wc/v3/products"
 
-    # 1) گرفتن کوکی‌ها با مرورگر
-    cookies = get_cookies_via_browser(api_url)
+    # 1) گرفتن کوکی‌ها با مرورگر (بهتره از صفحه اصلی کوکی بگیریم)
+    cookies = get_cookies_via_browser(BASE + "/")
     print("Got cookies:", list(cookies.keys())[:10])
 
-    # 2) درخواست ساخت محصول با همان کوکی‌ها
-    payload = {
-        "name": "محصول تست (Playwright bypass)",
-        "type": "simple",
-        "status": "publish",
-        "description": f"توضیحات کامل محصول.\n\n📌 جهت استعلام قیمت پیام بدید: {CONTACT}",
-        "short_description": f"📌 جهت استعلام قیمت پیام بدید: {CONTACT}",
-    }
+    # --- TEST 1: GET /wp-json/ ---
+    t1 = requests.get(
+        wpjson_root,
+        headers=HEADERS,
+        cookies=cookies,
+        timeout=60,
+        allow_redirects=True,
+    )
+    print("TEST1 URL:", wpjson_root)
+    print("TEST1 STATUS:", t1.status_code)
+    print("TEST1 CONTENT-TYPE:", t1.headers.get("Content-Type"))
+    print("TEST1 HEAD:", (t1.text or "")[:300])
 
-    r = requests.post(
-        api_url,
-        json=payload,
+    # --- TEST 2: GET /wp-json/wc/v3/products (با auth) ---
+    t2 = requests.get(
+        wc_products,
         auth=(CK, CS),
         headers=HEADERS,
         cookies=cookies,
         timeout=60,
         allow_redirects=True,
     )
+    print("TEST2 URL:", wc_products)
+    print("TEST2 STATUS:", t2.status_code)
+    print("TEST2 CONTENT-TYPE:", t2.headers.get("Content-Type"))
+    print("TEST2 HEAD:", (t2.text or "")[:300])
 
-    print("STATUS:", r.status_code)
-    print("CONTENT-TYPE:", r.headers.get("Content-Type"))
-    print("RESPONSE_HEAD:", (r.text or "")[:600])
 
 if __name__ == "__main__":
     main()
